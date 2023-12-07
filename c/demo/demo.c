@@ -127,8 +127,11 @@ void run_demo1()
 
 }
 
-#define ABOVE_THRESHOLD 700
-#define BELOW_THRESHOLD 300
+#define ALL_ABOVE_THRESHOLD 700
+#define ALL_BELOW_THRESHOLD 300
+
+#define ABOVE_THRESHOLD 800
+#define BELOW_THRESHOLD 200
 
 void run_demo()
 {
@@ -142,19 +145,31 @@ void run_demo()
 
     for (i = 0; i < 5; ++i)
     {
-        if (line_sensors_calibrated[i] > ABOVE_THRESHOLD)
+        if (line_sensors_calibrated[i] > ALL_ABOVE_THRESHOLD)
             ++num_above;
-        if (line_sensors_calibrated[i] < BELOW_THRESHOLD)
+        if (line_sensors_calibrated[i] < ALL_BELOW_THRESHOLD)
             ++num_below;
     }
 
-    if (num_below == 5)
+    if (num_below == 5 || num_above == 5)
     {
         motors_set_speeds(0, 0);
         continue;
     }
 
-    if (line_sensors_calibrated[1] > line_sensors_calibrated[2])
+    if (line_sensors_calibrated[0] > ABOVE_THRESHOLD)
+    {
+        motors_set_speeds(0, MOTORS_MAX_SPEED / 10);
+        speed_diff = 0;
+        continue;
+    }
+    if (line_sensors_calibrated[4] > ABOVE_THRESHOLD)
+    {
+        motors_set_speeds(MOTORS_MAX_SPEED / 10, 0);
+        speed_diff = 0;
+        continue;
+    }
+
     speed_diff += (line_sensors_calibrated[1] - line_sensors_calibrated[3]);
     motors_set_speeds(MOTORS_MAX_SPEED / 10 - speed_diff, MOTORS_MAX_SPEED / 10 + speed_diff);
   }
