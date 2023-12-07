@@ -36,6 +36,7 @@ void draw_options()
   {
     display_text("A: calibrate    ", 0, 0, COLOR_WHITE_ON_BLACK);
     display_text("C: switch mode  ", 0, 8, COLOR_WHITE_ON_BLACK);
+    display_text("B: run demo  ", 0, 8, COLOR_WHITE_ON_BLACK);
   }
 }
 
@@ -89,6 +90,39 @@ void draw_bar(uint32_t x, uint32_t value, uint32_t cal_min, uint32_t cal_max)
   }
 }
 
+#define ABOVE_THRESHOLD 700
+#define BELOW_THRESHOLD 300
+
+void run_demo()
+{
+  while(1)
+  {
+    int i;
+    int num_above = 0;
+    int num_below = 0;
+    int speed_diff = 0;
+    line_sensors_read_calibrated();
+
+    for (i = 0; i < 5; ++i)
+    {
+        if (line_sensors_calibrated[i] > ABOVE_THRESHOLD)
+            ++num_above;
+        if (line_sensors_calibrated[i] < BELOW_THRESHOLD)
+            ++num_below;
+    }
+
+    if (num_below == 5)
+    {
+        motors_set_speeds(0, 0);
+        continue;
+    }
+
+    if (line_sensors_calibrated[1] > line_sensors_calibrated[2])
+    speed_diff += (line_sensors_calibrated[1] - line_sensors_calibrated[3]);
+    motors_set_speeds(MOTORS_MAX_SPEED / 10 - speed_diff, MOTORS_MAX_SPEED / 10 + speed_diff);
+  }
+}
+
 // This non-blocking function returns a character representing a press event
 // for a button on the robot, or a character received from the virtual serial
 // port, or -1 if there is no input from either source.
@@ -103,6 +137,7 @@ char check_input()
 int main()
 {
   stdio_init_all();
+  motors_init();
   display_init();
   draw_options();
   draw_mode();
@@ -134,6 +169,10 @@ int main()
     {
       use_calibrated_read = !use_calibrated_read;
       draw_mode();
+    }
+    if (cmd == 'b')
+    {
+      run_demo();
     }
     if (cmd == 'd')
     {
