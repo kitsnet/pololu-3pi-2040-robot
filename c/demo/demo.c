@@ -23,6 +23,7 @@ button button_c = BUTTON_INIT(button_c_is_pressed);
 
 bool calibrate = 0;
 bool use_calibrated_read = 0;
+uint8_t menuIdx = 0;
 
 void draw_options()
 {
@@ -50,6 +51,20 @@ void draw_mode()
   {
     display_text("Raw       ", 0, 16, COLOR_WHITE_ON_BLACK);
   }
+}
+void incMenuIdx()
+{
+  menuIdx++;
+  if (menuIdx == 10)
+  {
+    menuIdx = 0;
+  }
+  char buffer [32];
+
+  snprintf(buffer, 32, "Alg %d", menuIdx);
+  display_fill(0);
+  display_text(buffer, 0, 0, 1);
+  //display_text("Alg       ", 0, 16, COLOR_WHITE_ON_BLACK);
 }
 
 void draw_notch(uint32_t x, uint32_t value)
@@ -88,6 +103,28 @@ void draw_bar(uint32_t x, uint32_t value, uint32_t cal_min, uint32_t cal_max)
   {
     draw_notch(x + 8, cal_max);
   }
+}
+
+void start_run()
+{
+  switch (menuIdx)
+  {
+    case 0:
+      run_demo();
+      break;
+    case 1:
+      run_demo1();
+      break;
+
+    default:
+      run_demo();
+      break;
+  }
+}
+
+void run_demo1()
+{
+
 }
 
 #define ABOVE_THRESHOLD 700
@@ -167,12 +204,13 @@ int main()
     }
     if (cmd == 'c')
     {
-      use_calibrated_read = !use_calibrated_read;
-      draw_mode();
+      //use_calibrated_read = !use_calibrated_read;
+      //draw_mode();
+      incMenuIdx();
     }
     if (cmd == 'b')
     {
-      run_demo();
+      start_run();
     }
     if (cmd == 'd')
     {
