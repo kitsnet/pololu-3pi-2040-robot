@@ -1,4 +1,4 @@
-import API
+from API import ControlMovement
 
 from DirectionBFS import Direction
 
@@ -16,11 +16,11 @@ class Mouse:
         return self.d
 
     def turnLeft(self):
-        API.turnLeft()
+        ControlMovement.turnLeft()
         self.d = self.d.turnLeft()
 
     def turnRight(self):
-        API.turnRight()
+        ControlMovement.turnRight()
         self.d = self.d.turnRight()
 
     def turnAround(self):
@@ -28,7 +28,8 @@ class Mouse:
         self.turnRight()
 
     def moveForward(self):
-        API.moveForward()
+        ControlMovement.moveForward(speed_left=None, speed_right=None, distance=None)
+        
         if self.d == Direction.NORTH:
             self.y += 1
         if self.d == Direction.EAST:
