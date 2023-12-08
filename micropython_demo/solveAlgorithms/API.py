@@ -10,32 +10,31 @@ class API:
     motors = robot.Motors()
     encoders = robot.Encoders()
     display = robot.Display()
-
-    drive_motors = False
-    last_time_gyro_reading = None
-    turn_rate = 0.0     # degrees per second
-    robot_angle = 0.0   # degrees
-    target_angle = 0.0
-    last_time_far_from_target = None
-
     imu = robot.IMU()
-    imu.reset()
-    imu.enable_default()
+    yellow_led = robot.YellowLED()
+
+    def __init__(self):
+        self.kp = 140
+        self.kd = 4
+        self.max_speed = 3000
+
+        self.drive_motors = False
+        self.target_angle = 0.0
+        self.last_time_far_from_target = None
+        self.last_time_gyro_reading = None
+        self.robot_angle = 0.0
 
     def draw_text(self):
         self.display.fill(0)
         if self.drive_motors:
             self.display.text("A: Stop motors", 0, 0, 1)
-            self.display.text("C: Stop motors", 0, 8, 1)
         else:
-            self.display.text(f"A: Turn {angle_to_turn} deg", 0, 0, 1)
-            self.display.text(f"C: Turn {-angle_to_turn} deg", 0, 8, 1)
-        self.display.text(f"Angle:", 0, 32, 1)
+            self.display.text("A: Turn Right", 0, 0, 1)
+        self.display.text(f"Angle: {self.robot_angle - self.target_angle:>9.3f}", 0, 32, 1)
+        self.display.show()
 
-    def handle_turn_or_stop(self, angle):
-        #global target_angle, drive_motors
-        #global last_time_far_from_target, last_time_gyro_reading
-        self.target_angle = self.robot_angle + angle
+    def handle_turn_or_stop(self, angle_to_turn):
+        self.target_angle = self.robot_angle - angle_to_turn
         self.drive_motors = not self.drive_motors
         if self.drive_motors:
             self.display.fill(1)
@@ -43,10 +42,9 @@ class API:
             self.display.text("WATCH OUT", 27, 30, 0)
             self.display.show()
             time.sleep_ms(500)
-            last_time_far_from_target = time.ticks_ms()
+            self.last_time_far_from_target = time.ticks_ms()
         self.draw_text()
-        last_time_gyro_reading = time.ticks_us()
-
+        self.last_time_gyro_reading = time.ticks_us()
 
     def mazeWidth():
         return 16 #command(args=["mazeWidth"], return_type=int)
@@ -135,113 +133,58 @@ class API:
         # stop
         self.motors.set_speeds(0, 0)
   
-    def turnRight(self):
-        angle_to_turn = 90
+    def turnRight(self, angle_to_turn=90):
+        self.target_angle = self.robot_angle - angle_to_turn
+        self.drive_motors = True
 
-        motors = robot.Motors()
-        encoders = robot.Encoders()
-        button_a = robot.ButtonA()
-        button_c = robot.ButtonC()
-        display = robot.Display()
-        yellow_led = robot.YellowLED()
-
-        display.fill(0)
-        display.text("Starting IMU...", 0, 0, 1)
-        display.show()
-        imu = robot.IMU()
-        imu.reset()
-        imu.enable_default()
-
-        max_speed = 3000
-        kp = 140
-        kd = 4
-
-
-        drive_motors = False
-        last_time_gyro_reading = None
-        turn_rate = 0.0     # degrees per second
-        robot_angle = 0.0   # degrees
-        target_angle = 0.0
-        last_time_far_from_target = None
+        self.display.fill(1)
+        self.display.text("Spinning", 30, 20, 0)
+        self.display.text("WATCH OUT", 27, 30, 0)
+        self.display.show()
+        time.sleep_ms(500)
+        self.last_time_far_from_target = time.ticks_ms()
 
         self.draw_text()
+        self.last_time_gyro_reading = time.ticks_us()
 
-        while True:
+        while self.drive_motors:
             # Update the angle and the turn rate.
-            if imu.gyro.data_ready():
-                imu.gyro.read()
-                turn_rate = imu.gyro.last_reading_dps[2]  # degrees per second
+            if self.imu.gyro.data_ready():
+                self.imu.gyro.read()
+                turn_rate = self.imu.gyro.last_reading_dps[2]  # degrees per second
                 now = time.ticks_us()
-                if last_time_gyro_reading:
-                    dt = time.ticks_diff(now, last_time_gyro_reading)
-                    robot_angle += turn_rate * dt / 1000000
-                last_time_gyro_reading = now
-
-            # Respond to button presses.
-            # if button_a.check() == True:
-            self.handle_turn_or_stop(angle_to_turn)
+                if self.last_time_gyro_reading:
+                    dt = time.ticks_diff(now, self.last_time_gyro_reading)
+                    self.robot_angle += turn_rate * dt / 1000000
+                self.last_time_gyro_reading = now
 
             # Decide whether to stop the motors.
-            if drive_motors:
-                far_from_target = abs(robot_angle - target_angle) > 3
+            if self.drive_motors:
+                far_from_target = abs(self.robot_angle - self.target_angle) > 3
                 if far_from_target:
-                    last_time_far_from_target = time.ticks_ms()
-                elif time.ticks_diff(time.ticks_ms(), last_time_far_from_target) > 250:
-                    drive_motors = False
+                    self.last_time_far_from_target = time.ticks_ms()
+                elif time.ticks_diff(time.ticks_ms(), self.last_time_far_from_target) > 250:
+                    self.drive_motors = False
                     self.draw_text()
 
             # Show the current angle in degrees.
-            display.fill_rect(48, 32, 72, 8, 0)
-            display.text(f"{robot_angle - target_angle:>9.3f}", 48, 32, 1)
-            display.show()
+            self.display.fill_rect(48, 32, 72, 8, 0)
+            self.display.text(f"{self.robot_angle - self.target_angle:>9.3f}", 48, 32, 1)
+            self.display.show()
 
             # Drive motors.
-            if drive_motors:
-                turn_speed = (target_angle - robot_angle) * kp - turn_rate * kd
-                if turn_speed > max_speed: turn_speed = max_speed
-                if turn_speed < -max_speed: turn_speed = -max_speed
-                motors.set_speeds(-turn_speed, turn_speed)
+            if self.drive_motors:
+                turn_speed = (self.target_angle - self.robot_angle) * self.kp - turn_rate * self.kd
+                if turn_speed > self.max_speed: turn_speed = self.max_speed
+                if turn_speed < -self.max_speed: turn_speed = -self.max_speed
+                self.motors.set_speeds(-turn_speed, turn_speed)
             else:
-                motors.off()
+                self.motors.off()
 
-            yellow_led.value(drive_motors)        
+            self.yellow_led.value(self.drive_motors)     
 
     def turnLeft(self):
-        self.draw_text()
-        # Update the angle and the turn rate.
-        if self.imu.gyro.data_ready():
-            self.imu.gyro.read()
-            turn_rate = self.imu.gyro.last_reading_dps[2]  # degrees per second
-            now = time.ticks_us()
-            if last_time_gyro_reading:
-                dt = time.ticks_diff(now, last_time_gyro_reading)
-                robot_angle += turn_rate * dt / 1000000
-            last_time_gyro_reading = now
-
-            self.handle_turn_or_stop(angle_to_turn)
-
-        # Decide whether to stop the motors.
-        if drive_motors:
-            far_from_target = abs(robot_angle - target_angle) > 3
-            if far_from_target:
-                last_time_far_from_target = time.ticks_ms()
-            elif time.ticks_diff(time.ticks_ms(), last_time_far_from_target) > 250:
-                drive_motors = False
-                self.draw_text()
-
-        # Show the current angle in degrees.
-        self.display.fill_rect(48, 32, 72, 8, 0)
-        self.display.text(f"{robot_angle - target_angle:>9.3f}", 48, 32, 1)
-        self.display.show()
-
-        # Drive motors.
-        if drive_motors:
-            turn_speed = (target_angle - robot_angle) * 140 - turn_rate * 4
-            if turn_speed > 3000: turn_speed = 3000
-            if turn_speed < -3000: turn_speed = -3000
-            self.motors.set_speeds(-turn_speed, turn_speed)
-        else:
-            self.motors.off()
+        pass
 
     def setWall(x, y, direction):
         pass #command(args=["setWall", x, y, direction])
