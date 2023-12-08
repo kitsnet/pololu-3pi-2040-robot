@@ -6,14 +6,6 @@ from MazeBFS import Maze
 from MouseBFS import Mouse
 
 
-def main():
-    playMusic()
-    maze = Maze(API.mazeWidth(), API.mazeHeight())
-    mouse = Mouse(15, 0, Direction.NORTH)
-    #mouse = Mouse(0, 0, Direction.NORTH)
-    while not maze.inCenter(mouse.getPosition()):
-        updateWalls(maze, mouse)
-        moveOneCell(maze, mouse)
 
 def playMusic():
     final_countdown = "!L16 V8 c<bc4<f4 r d16c16d8c8<b4 r d16c16d4<f4 r <b16<a16<b8<a8<f8<b8 r"
@@ -103,5 +95,11 @@ def getNeighbor(current, direction):
     return (x, y)
 
 
-if __name__ == "__main__":
-    main()
+
+playMusic()
+maze = Maze(API.mazeWidth(), API.mazeHeight())
+mouse = Mouse(15, 0, Direction.NORTH)
+#mouse = Mouse(0, 0, Direction.NORTH)
+while not maze.inCenter(mouse.getPosition()):
+    updateWalls(maze, mouse)
+    moveOneCell(maze, mouse)

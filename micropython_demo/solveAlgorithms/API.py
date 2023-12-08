@@ -14,10 +14,10 @@ def wallFront():
     return False #command(args=["wallFront"], return_type=bool)
 
 def wallRight():
-    return True #command(args=["wallRight"], return_type=bool)
+    return False #command(args=["wallRight"], return_type=bool)
 
 def wallLeft():
-    return True #command(args=["wallLeft"], return_type=bool)
+    return False #command(args=["wallLeft"], return_type=bool)
 
 def moveForward():
     pass
