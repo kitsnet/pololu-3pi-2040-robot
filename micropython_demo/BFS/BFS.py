@@ -8,7 +8,8 @@ from MouseBFS import Mouse
 
 def main():
     maze = Maze(API.mazeWidth(), API.mazeHeight())
-    mouse = Mouse(0, 0, Direction.NORTH)
+    mouse = Mouse(15, 0, Direction.NORTH)
+    #mouse = Mouse(0, 0, Direction.NORTH)
     while not maze.inCenter(mouse.getPosition()):
         updateWalls(maze, mouse)
         moveOneCell(maze, mouse)
