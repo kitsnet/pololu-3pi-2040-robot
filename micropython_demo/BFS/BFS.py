@@ -7,6 +7,7 @@ from MouseBFS import Mouse
 
 
 def main():
+    playMusic()
     maze = Maze(API.mazeWidth(), API.mazeHeight())
     mouse = Mouse(15, 0, Direction.NORTH)
     #mouse = Mouse(0, 0, Direction.NORTH)
@@ -14,6 +15,11 @@ def main():
         updateWalls(maze, mouse)
         moveOneCell(maze, mouse)
 
+def playMusic():
+    final_countdown = "!L16 V8 c<bc4<f4 r d16c16d8c8<b4 r d16c16d4<f4 r <b16<a16<b8<a8<f8<b8 r"
+    buzzer = robot.Buzzer()
+    buzzer.play_in_background(final_countdown)
+    buzzer.off()
 
 def updateWalls(maze, mouse):
     position = mouse.getPosition()
