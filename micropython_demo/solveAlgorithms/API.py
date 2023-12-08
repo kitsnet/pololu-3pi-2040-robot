@@ -90,8 +90,46 @@ class API:
         self.motors.set_speeds(0, 0)
   
     def turnRight(self):
-        pass
-        
+        while True:
+            self.draw_text()
+            # Update the angle and the turn rate.
+            if self.imu.gyro.data_ready():
+                self.imu.gyro.read()
+                self.turn_rate = self.imu.gyro.last_reading_dps[2]  # degrees per second
+                now = time.ticks_us()
+                if self.last_time_gyro_reading:
+                    dt = time.ticks_diff(now, self.last_time_gyro_reading)
+                    self.robot_angle += self.turn_rate * dt / 1000000
+                self.last_time_gyro_reading = now
+
+                self.handle_turn_or_stop(-angle_to_turn)
+
+            # Decide whether to stop the motors.
+            if self.drive_motors:
+                far_from_target = abs(self.robot_angle - self.target_angle) > 3
+                if far_from_target:
+                    last_time_far_from_target = time.ticks_ms()
+                elif time.ticks_diff(time.ticks_ms(), last_time_far_from_target) > 250:
+                    self.drive_motors = False
+                    self.draw_text()
+
+            # Show the current angle in degrees.
+            self.display.fill_rect(48, 32, 72, 8, 0)
+            self.display.text(f"{self.robot_angle - self.target_angle:>9.3f}", 48, 32, 1)
+            self.display.show()
+
+            max_speed = 3000
+            kp = 140
+            kd = 4
+
+            # Drive motors.
+            if self.drive_motors:
+                turn_speed = (self.target_angle - self.robot_angle) * kp - self.turn_rate * kd
+                if turn_speed > max_speed: turn_speed = max_speed
+                if turn_speed < -max_speed: turn_speed = -max_speed
+                self.motors.set_speeds(-turn_speed, turn_speed)
+            else:
+                self.motors.off()        
 
     def turnLeft(self):
         while True:
