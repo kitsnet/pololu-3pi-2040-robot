@@ -2,7 +2,7 @@ from pololu_3pi_2040_robot import robot
 import time
 from tof import SensorInterface
 
-DEFAULT_SPEED_CHANGE = 250
+DEFAULT_SPEED_CHANGE = 10
 SPEED = 1000
 angle_to_turn = 90
 
@@ -33,11 +33,11 @@ class API:
         self.display.text(f"Angle:", 0, 32, 1)
 
     def handle_turn_or_stop(self, angle):
-        global target_angle, drive_motors
-        global last_time_far_from_target, last_time_gyro_reading
-        target_angle = self.robot_angle + angle
-        drive_motors = not drive_motors
-        if drive_motors:
+        #global target_angle, drive_motors
+        #global last_time_far_from_target, last_time_gyro_reading
+        self.target_angle = self.robot_angle + angle
+        self.drive_motors = not self.drive_motors
+        if self.drive_motors:
             self.display.fill(1)
             self.display.text("Spinning", 30, 20, 0)
             self.display.text("WATCH OUT", 27, 30, 0)
@@ -94,25 +94,37 @@ class API:
         else:
             return False
 
-    def moveForward(self, distance):
+    def moveForward(self):
         self.encoders.get_counts(reset=True)
-        self.motors.set_speeds(SPEED, SPEED)
+        speed_left = 620
+        speed_right = 570
+        self.motors.set_speeds(speed_left, speed_right)
+        distance = 230
 
-        left, right = self.encoders.get_counts()
+        left_a, right_a = self.encoders.get_counts()
+        left = abs(left_a)
+        right = abs(right_a)
 
+        counter = 0
         while left < distance and right < distance:
-            left, right = self.encoders.get_counts()
-            print("Left value: {left}")
-            print("Right value: {right}")
+            counter = counter + 1
+            left_a, right_a = self.encoders.get_counts()
+            left = abs(left_a)
+            right = abs(right_a)
+            self.display.fill(0)
+            self.display.text(f"L: {left} R: {right}",0,0)
+            self.display.show()
 
-            if left < right:
+            if left < right and counter % 1000 == 0:
+                counter = 0
                 speed_left += DEFAULT_SPEED_CHANGE
                 speed_right -= DEFAULT_SPEED_CHANGE
-            else:
+            elif left > right and counter % 1000 == 0:
+                counter = 0
                 speed_left -= DEFAULT_SPEED_CHANGE
                 speed_right += DEFAULT_SPEED_CHANGE
             
-            self.motors.set_speed(speed_left, speed_right)
+            self.motors.set_speeds(speed_left, speed_right)
 
             # Check for any obstacles or unexpected conditions
             # if obstacle_detected :
@@ -124,8 +136,75 @@ class API:
         self.motors.set_speeds(0, 0)
   
     def turnRight(self):
-        pass
-        
+        angle_to_turn = 90
+
+        motors = robot.Motors()
+        encoders = robot.Encoders()
+        button_a = robot.ButtonA()
+        button_c = robot.ButtonC()
+        display = robot.Display()
+        yellow_led = robot.YellowLED()
+
+        display.fill(0)
+        display.text("Starting IMU...", 0, 0, 1)
+        display.show()
+        imu = robot.IMU()
+        imu.reset()
+        imu.enable_default()
+
+        max_speed = 3000
+        kp = 140
+        kd = 4
+
+
+        drive_motors = False
+        last_time_gyro_reading = None
+        turn_rate = 0.0     # degrees per second
+        robot_angle = 0.0   # degrees
+        target_angle = 0.0
+        last_time_far_from_target = None
+
+        self.draw_text()
+
+        while True:
+            # Update the angle and the turn rate.
+            if imu.gyro.data_ready():
+                imu.gyro.read()
+                turn_rate = imu.gyro.last_reading_dps[2]  # degrees per second
+                now = time.ticks_us()
+                if last_time_gyro_reading:
+                    dt = time.ticks_diff(now, last_time_gyro_reading)
+                    robot_angle += turn_rate * dt / 1000000
+                last_time_gyro_reading = now
+
+            # Respond to button presses.
+            # if button_a.check() == True:
+            self.handle_turn_or_stop(angle_to_turn)
+
+            # Decide whether to stop the motors.
+            if drive_motors:
+                far_from_target = abs(robot_angle - target_angle) > 3
+                if far_from_target:
+                    last_time_far_from_target = time.ticks_ms()
+                elif time.ticks_diff(time.ticks_ms(), last_time_far_from_target) > 250:
+                    drive_motors = False
+                    self.draw_text()
+
+            # Show the current angle in degrees.
+            display.fill_rect(48, 32, 72, 8, 0)
+            display.text(f"{robot_angle - target_angle:>9.3f}", 48, 32, 1)
+            display.show()
+
+            # Drive motors.
+            if drive_motors:
+                turn_speed = (target_angle - robot_angle) * kp - turn_rate * kd
+                if turn_speed > max_speed: turn_speed = max_speed
+                if turn_speed < -max_speed: turn_speed = -max_speed
+                motors.set_speeds(-turn_speed, turn_speed)
+            else:
+                motors.off()
+
+            yellow_led.value(drive_motors)        
 
     def turnLeft(self):
         self.draw_text()

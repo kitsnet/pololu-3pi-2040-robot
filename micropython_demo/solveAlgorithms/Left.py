@@ -1,4 +1,5 @@
-import API
+from API import API
+import time
 import sys
 from pololu_3pi_2040_robot import robot
 
@@ -17,9 +18,32 @@ display = robot.Display()
 display.text("Running...", 0,0)
 #API.setColor(0, 0, "G")
 #API.setText(0, 0, "abc")
-while True:
-    if not API.wallLeft():
-        API.turnLeft()
-    while API.wallFront():
-        API.turnRight()
-    API.moveForward()
+# while True:
+#     if not API.wallLeft():
+#         API.turnLeft()
+#     while API.wallFront():
+#         API.turnRight()
+#     API.moveForward()
+
+api = API()
+
+# api.turnLeft()
+# time.sleep(2)
+# api.turnLeft()
+# time.sleep(2)
+# api.turnLeft()
+# time.sleep(2)
+
+# api.turnRight()
+# time.sleep(2)
+# api.turnRight()
+# time.sleep(2)
+# api.turnRight()
+# time.sleep(2)
+
+api.moveForward()
+time.sleep(2)
+api.moveForward()
+time.sleep(2)
+api.moveForward()
+time.sleep(2)
